@@ -10,6 +10,7 @@ library(here)
 library(my.r.functions)
 library(tsibble)
 library(fable)
+library(feasts)
 library(RcppRoll)
 library(lubridate)
 library(distributional)
@@ -24,7 +25,7 @@ conflict_prefer(name = "lag", winner = "dplyr")
 # *****************************************************************************
 # Load data ----
 
-dat_raw <- read_csv(file = here("data/nz-gdp.csv"), 
+dat_raw <- read_csv(file = here("data/gross-domestic-product-december-2020-quarter-csv.csv"), 
                     col_types = "ccncciccccccc") %>%
   clean_names()
 
@@ -54,11 +55,26 @@ dat_qtr_gdp <- dat_raw %>%
 dat_qtr_gdp_model <- dat_qtr_gdp %>% filter(year(date) < 2020)
 
 # Models
+bc_lambda_qtr <- dat_qtr_gdp_model %>% 
+  features(.var = value_q, features = guerrero) %>%
+  pull(lambda_guerrero)
+
 qtr_gdp_model <- dat_qtr_gdp_model %>%
-  model(arima = ARIMA(formula = value_q, ic = "bic"))
+  model(
+    arima = ARIMA(formula = box_cox(x = value_q, lambda = bc_lambda_qtr), 
+                  ic = "bic")
+  ) 
+
+bc_lambda_ann <- dat_qtr_gdp_model %>% 
+  filter(!is.na(value_a)) %>%
+  features(.var = value_a, features = guerrero) %>%
+  pull(lambda_guerrero)
 
 ann_gdp_model <- dat_qtr_gdp_model %>%
-  model(arima = ARIMA(formula = value_a, ic = "bic"))
+  model(
+    arima = ARIMA(formula = box_cox(x = value_a, lambda = bc_lambda_ann), 
+                  ic = "bic")
+  )
 
 # Forecast for 2020 from combined model
 qtr_gdp_forecast_2020 <- qtr_gdp_model %>%
@@ -87,7 +103,7 @@ ann_gdp_forecast_2020 <- ann_gdp_model %>%
 
 # Quarterly
 qtr_comp_2020 <- full_join(
-  x = gdp_forecast_2020, 
+  x = qtr_gdp_forecast_2020, 
   y = dat_qtr_gdp %>% filter(year(date) > 2017) %>% select(-value_a), 
   by = "date"
 ) %>%
@@ -139,7 +155,7 @@ output_chart(chart = chart_qtr_comp_2020,
 
 # Annual -- uses prediction interval width from annual model applied to values
 # from quarterly model for consistency
-forecast_2020_qtr_year <- sum(gdp_forecast_2020$.mean)
+forecast_2020_qtr_year <- sum(qtr_gdp_forecast_2020$.mean)
 
 annual_comp_2020 <- full_join(
   x = dat_qtr_gdp %>%
