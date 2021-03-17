@@ -144,7 +144,7 @@ chart_qtr_comp_2020 <- qtr_comp_2020 %>%
                nudge_y = 0.2, 
                rel_size = 0.75, 
                colour = "indianred") + 
-  scale_y_continuous(limits = c(56, 68), breaks = seq(56, 68, 2)) + 
+  scale_y_continuous(limits = c(56, 68.5), breaks = seq(56, 68, 2)) + 
   scale_x_yearquarter(breaks = date_breaks("3 months"))
 
 output_chart(chart = chart_qtr_comp_2020, 
@@ -173,8 +173,7 @@ annual_comp_2020 <- full_join(
          conf_upper_ratio = conf_upper / .mean) %>%
   mutate(.mean = ifelse(year == 2020, forecast_2020_qtr_year, .mean)) %>%
   mutate(conf_lower = .mean * conf_lower_ratio, 
-         conf_upper = .mean * conf_upper_ratio) %>%
-  print()
+         conf_upper = .mean * conf_upper_ratio)
 
 chart_annual_comp_2020 <- annual_comp_2020 %>%
   ggplot(mapping = aes(x = year)) + 
@@ -194,20 +193,20 @@ chart_annual_comp_2020 <- annual_comp_2020 %>%
                colour = "firebrick") + 
   my_geom_text(mapping = aes(y = value_a / 1000, 
                              label = format_decimal_label(x = value_a / 1000, dp = 0)), 
-               nudge_x = 0.25) + 
+               nudge_x = 0.25, 
+               rel_size = 1.25) + 
   my_geom_text(mapping = aes(y = .mean / 1000, 
                              label = format_decimal_label(x = .mean / 1000, dp = 0)), 
                nudge_x = 0.25, 
+               rel_size = 1.25,
                colour = "firebrick") + 
   my_geom_text(mapping = aes(y = conf_lower / 1000, 
                              label = format_decimal_label(x = conf_lower / 1000, dp = 0)), 
                nudge_y = -1, 
-               rel_size = 0.75, 
                colour = "indianred") + 
   my_geom_text(mapping = aes(y = conf_upper / 1000, 
                              label = format_decimal_label(x = conf_upper / 1000, dp = 0)), 
                nudge_y = 1, 
-               rel_size = 0.75, 
                colour = "indianred") +
   scale_y_continuous(limits = c(190, 270), breaks = seq(190, 270, 10)) + 
   scale_x_continuous(limits = c(2010, 2020.5), breaks = seq(2010, 2020, 1))
@@ -216,6 +215,7 @@ output_chart(chart = chart_annual_comp_2020,
              path = here("outputs"), 
              orientation = "wide", 
              xlab = "Calendar year", 
+             base_size = 10,
              ggtitle = "NZ real GDP (2009/10 $billion)")
 
 # *****************************************************************************
